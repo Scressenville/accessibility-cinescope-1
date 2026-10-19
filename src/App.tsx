@@ -12,12 +12,12 @@ const films = [
 export default function App() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const selectedFilm = films.find((film) => film.title === selected);
   const [favorites, setFavorites] = useState<number[]>([]);
   const filteredFilms = useMemo(
     () => films.filter((film) => film.title.toLowerCase().includes(query.toLowerCase())),
     [query],
   );
-
   const toggleFavorite = (id: number) => {
     setFavorites((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
   };
@@ -25,55 +25,70 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <button type="button" className="brand" onClick={() => setQuery("")}>CinéScope</button>
-        <nav className="menu">
-          <a href="#programme">Programme</a>
-          <a href="#infos">Informations</a>
+        <a className="brand" href="#programme" onClick={() => setQuery("")}>CinéScope</a>
+        <nav aria-label="Navigation principale">
+          <ul className="menu">
+            <li><a href="#programme">Programme</a></li>
+            <li><a href="#infos">Informations</a></li>
+          </ul>
         </nav>
       </header>
-
       <main className="page">
         <h1>Films à l’affiche</h1>
         <p className="intro">Découvrez la programmation de cette semaine.</p>
-        <label htmlFor="search" className="visually-hidden">Rechercher un film</label>
-        <input
-          id="search"
-          type="search"
-          className="search"
-          placeholder="Rechercher un film"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-
-        <ul id="programme" className="film-grid">
-          {filteredFilms.map((film) => (
-            <li className="film-card" key={film.id}>
-              <img src={film.poster} alt="" />
-              <div className="film-content">
-                <h2>
-                  <button type="button" className="film-select" onClick={() => setSelected(film.title)}>
-                    {film.title}
-                  </button>
-                </h2>
-                <p>{film.genre} · {film.time} · {film.available ? "Disponible" : "Complet"}</p>
-                <div className="film-badges">
-                  <span className={film.available ? "availability available" : "availability unavailable"} />
-                  <button
-                    type="button"
-                    className="favorite"
-                    aria-pressed={favorites.includes(film.id)}
-                    onClick={() => toggleFavorite(film.id)}
-                  >
-                    <span aria-hidden="true">{favorites.includes(film.id) ? "★" : "☆"}</span>
-                    <span className="visually-hidden">Favori : {film.title}</span>
-                  </button>
-                </div>
+        <div className="search-field">
+          <label htmlFor="film-search">Rechercher un film</label>
+          <input id="film-search" className="search" type="search" value={query}
+            onChange={(event) => setQuery(event.target.value)} />
+        </div>
+        <section id="programme" aria-labelledby="programme-title">
+          <h2 id="programme-title">Programme</h2>
+          <div className="film-grid">
+            {filteredFilms.map((film) => {
+              const isFavorite = favorites.includes(film.id);
+              return (
+                <article className="film-card" key={film.id}>
+                  <img src={film.poster} alt="" />
+                  <div className="film-content">
+                    <p className={"availability " + (film.available ? "available" : "unavailable")}>
+                      {film.available ? "Places disponibles" : "Séance complète"}
+                    </p>
+                    <h3>{film.title}</h3>
+                    <p>{film.genre} · {film.time}</p>
+                    <div className="actions">
+                      <div className="booking-trigger fake-button" onClick={() => setSelected(film.title)}>Réserver {film.title}</div>
+                      <button type="button" className="favorite" aria-pressed={isFavorite}
+                        aria-label={"Favori : " + film.title} onClick={() => toggleFavorite(film.id)}>
+                        <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          {filteredFilms.length === 0 && <p>Aucun film ne correspond à votre recherche.</p>}
+        </section>
+        <section id="infos" className="infos" aria-labelledby="infos-title">
+          <h2 id="infos-title">Informations pratiques</h2>
+          <p>Le cinéma ouvre trente minutes avant la première séance.</p>
+        </section>
+        {selectedFilm && (
+          <div className="backdrop">
+            <div className="modal">
+              <div className="dialog-heading">
+                <h2>Réserver {selected}</h2>
+                <span className="close" onClick={() => setSelected(null)}>×</span>
               </div>
-            </li>
-          ))}
-        </ul>
-
-        <p className="selection" role="status">{selected && <>Film sélectionné : {selected}</>}</p>
+              <p>{selectedFilm.genre} · Séance de {selectedFilm.time}</p>
+              <p className={"availability " + (selectedFilm.available ? "available" : "unavailable")}>
+                {selectedFilm.available ? "Places disponibles" : "Séance complète"}
+              </p>
+              <p>Consultez la séance et sa disponibilité avant de revenir au programme.</p>
+              <button className="dialog-action" type="button" onClick={() => setSelected(null)}>Revenir aux films</button>
+            </div>
+          </div>
+        )}
       </main>
     </>
   );
