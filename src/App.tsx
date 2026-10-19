@@ -9,6 +9,8 @@ const films = [
   { id: 3, title: "Orbite 9", genre: "Science-fiction", time: "21 h 00", available: true, poster: posterOrbite },
 ];
 
+type Film = (typeof films)[number];
+
 export default function App() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -22,8 +24,27 @@ export default function App() {
     setFavorites((items) => items.includes(id) ? items.filter((item) => item !== id) : [...items, id]);
   };
 
+  // Bouton qui a ouvert la modale, la modale elle-même et son titre.
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+
+  const openBooking = (film: Film, trigger: HTMLButtonElement) => {
+    triggerRef.current = trigger;
+    setSelected(film.title);
+  };
+
+  // Ferme la modale ; le retour du focus est géré dans handleDialogClose.
+  const closeBooking = () => {
+    dialogRef.current?.close();
+  };
+
+  // Appelé par l'événement « close » natif : bouton de fermeture, action ou Escape.
+  const handleDialogClose = () => {
+    setSelected(null);
+    triggerRef.current?.focus();
+    triggerRef.current = null;
+  };
 
   // showModal() rend le reste de la page inerte ; le focus est placé sur le titre.
   useEffect(() => {
@@ -68,7 +89,7 @@ export default function App() {
                     <p>{film.genre} · {film.time}</p>
                     <div className="actions">
                       <button type="button" className="booking-trigger" aria-haspopup="dialog"
-                        onClick={() => setSelected(film.title)}>Réserver {film.title}</button>
+                        onClick={(event) => openBooking(film, event.currentTarget)}>Réserver {film.title}</button>
                       <button type="button" className="favorite" aria-pressed={isFavorite}
                         aria-label={"Favori : " + film.title} onClick={() => toggleFavorite(film.id)}>
                         <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span>
@@ -85,19 +106,21 @@ export default function App() {
           <h2 id="infos-title">Informations pratiques</h2>
           <p>Le cinéma ouvre trente minutes avant la première séance.</p>
         </section>
-        <dialog ref={dialogRef} className="modal" aria-labelledby="booking-title" onClose={() => setSelected(null)}>
+        <dialog ref={dialogRef} className="modal" aria-labelledby="booking-title" onClose={handleDialogClose}>
           {selectedFilm && (
             <>
               <div className="dialog-heading">
                 <h2 id="booking-title" ref={titleRef} tabIndex={-1}>Réserver {selectedFilm.title}</h2>
-                <span className="close" onClick={() => dialogRef.current?.close()}>×</span>
+                <button type="button" className="close" aria-label="Fermer la réservation" onClick={closeBooking}>
+                  <span aria-hidden="true">×</span>
+                </button>
               </div>
               <p>{selectedFilm.genre} · Séance de {selectedFilm.time}</p>
               <p className={"availability " + (selectedFilm.available ? "available" : "unavailable")}>
                 {selectedFilm.available ? "Places disponibles" : "Séance complète"}
               </p>
               <p>Consultez la séance et sa disponibilité avant de revenir au programme.</p>
-              <button className="dialog-action" type="button" onClick={() => dialogRef.current?.close()}>Revenir aux films</button>
+              <button className="dialog-action" type="button" onClick={closeBooking}>Revenir aux films</button>
             </>
           )}
         </dialog>
